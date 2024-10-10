@@ -22,4 +22,14 @@ app.use(express.static("public"));
 
 app.use(cookieParser());
 
+//* Routes import
+import userRouter from "./routes/user.routes.js";
+
+//* routes declaration
+//? so url create like http://localhost:8080/api/v1/users/ ,
+//? request come here after it takes to the userRouter and
+//? in userRouter wi define which method we are using
+
+app.use("/api/v1/users", userRouter);
+
 export { app };
