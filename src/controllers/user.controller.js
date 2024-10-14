@@ -6,6 +6,13 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 //? here we are uisng async handler to handle async request
 const registerUser = asyncHandler(async (req, res) => {
+  //    console.log("checking avatar", req.files?.avatar[0]?.path);
+  //   return;
+  /*   console.log("checking req body response ::::::::::", req.body);
+  console.log(
+    "checking req body response :::::::================:::",
+    req.files
+  ); */
   const { userName, fullName, email, password } = req.body;
 
   //! Checking fields are not empty using if else
@@ -22,7 +29,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   //! checking if user already exixst
-  const existedUser = User.findOne({
+  const existedUser = await User.findOne({
     $or: [{ userName }, { email }],
   });
 
@@ -30,13 +37,23 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User with Email or Username already exist");
   }
 
-  //! getting uploaded image path from local
+  //! getting uploaded image path from local, here req.files this "Files" is we are getting using multer
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  //   console.log("avatarLocalPath", avatarLocalPath);
+  // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+  let coverImageLocalPath;
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
 
   //! if avatar image not found throw a error
   if (!avatarLocalPath) {
-    throw new ApiError(400, "Avatar files is required");
+    throw new Error(400, "Avatar files is required in local");
   }
 
   //! Upload image in Cloudinary
@@ -46,7 +63,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //* Checking avatar image uploaded on cloud or not
   if (!avatar) {
-    throw new ApiError(400, "Avatar file is required");
+    throw new ApiError(400, "Avatar file is required to upload in cloudinary");
   }
 
   //! creating user in Database
