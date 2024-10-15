@@ -49,6 +49,7 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
+// pre is use before saving the data into databse
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
