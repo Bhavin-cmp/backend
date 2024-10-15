@@ -1,7 +1,7 @@
-import { ApiError } from "../utils/ApiError";
+import { ApiError } from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
-import { asyncHandler } from "../utils/asyncHandler";
-import { User } from "../models/user.model";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { User } from "../models/user.model.js";
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
   // Accessing token from cookies or header for logout
@@ -10,7 +10,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     const token =
       req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Beared ", "");
-
+    console.log("Check tokenn", token);
     if (!token) {
       throw new ApiError(401, "Unaauthorized request");
     }

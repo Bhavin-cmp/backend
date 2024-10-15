@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -114,8 +115,9 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, userName, password } = req.body;
+  console.log("Email check", email);
 
-  if (!userName || !email) {
+  if (!(userName || email)) {
     throw new ApiError(400, "userName or Email is required");
   }
 
@@ -192,14 +194,61 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User Logged Out Successfully"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
+
+  if (incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid Refresh Token");
+    }
+
+    if (incomingRefreshToken != User?.refreshToken) {
+      throw new ApiError(401, "Refresh Token is expired or used");
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { newRefreshToken, accessToken } =
+      await generateAccessAndRefreshTokens(user._id);
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken: newRefreshToken },
+          "Access Token refresh "
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid  refresh Token");
+  }
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
 
 //! Steps to user Registration
 //* 1. GET USER's DETAILS FROM FRONTEND
 //* 2. Add Validation - Not empty
 //* 3. Check if user already exixst : userName and Email
 //* 4. Check for images , Check for avatar is uploaded
-//* 5. upload image to cloudinary, avatar
+//* 5. upload image to cloudinary,   avatar
 //* 6. create user object to send userData in mongoDb - create entry in db
 //* 7. remove password and refresh Token field from response
 //* 8. check for user creation
